@@ -37,18 +37,18 @@ module Sequenced
   private
 
     def prepare_next_id
-      return if Redis.current.exists?(sequence_key)
+      return if Redis.new(ENV.fetch('REDIS_URL', nil)).exists?(sequence_key)
 
       lock_table
 
       start_at = self.start_at.respond_to?(:call) ? self.start_at.call(record) : self.start_at
       last_id = find_last_record&.send(column) || 0
 
-      Redis.current.set(sequence_key, max(last_id, start_at - 1), nx: true, ex: 86400)
+      Redis.new(ENV.fetch('REDIS_URL', nil)).set(sequence_key, max(last_id, start_at - 1), nx: true, ex: 86400)
     end
 
     def next_id_in_sequence(increment:)
-      Redis.current.call(increment ? 'incr' : 'get', sequence_key)
+      Redis.new(ENV.fetch('REDIS_URL', nil)).call(increment ? 'incr' : 'get', sequence_key)
     end
 
     def scope_to_key(*columns)
